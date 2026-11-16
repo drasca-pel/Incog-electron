@@ -1,0 +1,66 @@
+{
+  "name": "incog-electric-lab",
+  "productName": "Incog Electric Lab",
+  "version": "1.0.0",
+  "description": "Offline desktop electrical lab: circuit simulator, network theorems, AC/DC/transient analysis, electric and magnetic fields.",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "electron . --dev",
+    "start": "electron .",
+    "web": "node scripts/serve.js",
+    "test": "node tests/run.js && node tests/physics.js",
+    "build": "electron-builder",
+    "dist": "electron-builder"
+  },
+  "author": "Incog",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.incog.electriclab",
+    "productName": "Incog Electric Lab",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.education"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Education"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Incog-Electric-Lab-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Incog-Electric-Lab-Portable-${version}.${ext}"
+    },
+    "fileAssociations": [
+      {
+        "ext": "incog",
+        "name": "Incog circuit",
+        "description": "Incog Electric Lab circuit",
+        "role": "Editor"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
+}

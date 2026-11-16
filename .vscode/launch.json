@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Incog Electric Lab (Electron)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "windows": { "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd" },
+      "args": ["."],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Open index.html in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/src/index.html"
+    }
+  ]
+}
