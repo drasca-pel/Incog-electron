@@ -6,7 +6,7 @@
  *
  * hooks: { onChange(), onSelect(sel), onEdit(comp), getLive() -> {nl, sol, mode} | null,
  *          onTool(tool), onMessage(text) }
- * ==================================================================== */
+ * ========================================================================== */
 (function (root) {
   'use strict';
   const Incog = (root.Incog = root.Incog || {});
@@ -64,7 +64,7 @@
       if (this.hooks.onTool) this.hooks.onTool(t);
       this.invalidate();
     }
-       startPlace(type, params) {
+    startPlace(type, params) {
       this.placing = { type, rot: 0, params: params || null }; this.tool = 'select'; this.wireDraft = null;
       this.cv.style.cursor = 'copy'; if (this.hooks.onTool) this.hooks.onTool('place', type); this.invalidate();
     }
@@ -256,7 +256,7 @@
       if (e.button !== 0) return;
 
       if (this.placing) {
-       const c = this.circuit.addComponent(this.placing.type, m.gx, m.gy, this.placing.rot, this.placing.params);
+        const c = this.circuit.addComponent(this.placing.type, m.gx, m.gy, this.placing.rot, this.placing.params);
         this.select([{ kind: 'comp', id: c.id }]); this.commit(); return;
       }
       if (this.tool === 'wire') { this._wireClick(); return; }
@@ -366,6 +366,11 @@
       if (ctrl && k === 'a') { this.select([...this.circuit.comps.map((c) => ({ kind: 'comp', id: c.id })), ...this.circuit.wires.map((w) => ({ kind: 'wire', id: w.id }))]); e.preventDefault(); return; }
       if (ctrl) return;
       if (k === 'escape') { this.cancel(); this.select([]); return; }
+      if (k === 'enter') {
+        // back to the default arrow: stop placing / wiring / probing / panning
+        e.preventDefault(); if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
+        this.cancel(); this.setTool('select'); return;
+      }
       if (k === 'delete' || k === 'backspace') { this.deleteSelection(); e.preventDefault(); return; }
       if (k === 'r') { this.rotateSelection(); return; }
       if (k === 'v') this.setTool('select');
@@ -459,7 +464,7 @@
       this._imax = imax;
       for (const [id, i] of inst) {
         const v = (i / imax) * 60; // px / s at full scale
-        this.flow.set(id, ((this.flow.get(id) || 0) + v * dt) % 1000);
+        this.flow.set(id, ((this.flow.get(id) || 0) + v * dt) % 960);
       }
       this._inst = inst;
     }
@@ -528,7 +533,7 @@
         const def = Incog.registry.get(this.placing.type);
         g.save(); g.globalAlpha = 0.7; g.translate(this.mouse.gx * GRID, this.mouse.gy * GRID); g.rotate((this.placing.rot * Math.PI) / 2);
         g.strokeStyle = th.ghost; g.fillStyle = th.ghost; g.lineWidth = 2;
-       def.draw(g, { params: Object.assign(Incog.registry.defaultParams(def), this.placing.params || {}), rot: this.placing.rot }, { stroke: th.ghost }); g.restore();
+        def.draw(g, { params: Object.assign(Incog.registry.defaultParams(def), this.placing.params || {}), rot: this.placing.rot }, { stroke: th.ghost }); g.restore();
       }
       // box select
       const d = this.drag;
@@ -569,6 +574,17 @@
       g.translate(k.x * GRID, k.y * GRID); g.rotate((k.rot * Math.PI) / 2);
       g.strokeStyle = col.stroke; g.fillStyle = col.stroke; g.lineWidth = sel ? 2.8 : 2.2;
       if (sel) { g.shadowColor = th.sel; g.shadowBlur = 8; }
+      if (def.glow && live && live.sol) {                       // a bulb lights up with its power
+        const r = live.sol.get(k.id), lv = r ? def.glow(k, r) : 0;
+        if (lv > 0.01) {
+          const a = Math.min(1, lv), hot = lv > 1.25, rad = 20 + 34 * Math.min(lv, 1.6);
+          const gr = g.createRadialGradient(0, 0, 4, 0, 0, rad);
+          const c0 = hot ? '255,255,235' : '255,214,90';
+          gr.addColorStop(0, 'rgba(' + c0 + ',' + (0.85 * a).toFixed(2) + ')'); gr.addColorStop(1, 'rgba(255,190,60,0)');
+          g.save(); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rad, 0, 7); g.fill();
+          g.fillStyle = 'rgba(' + c0 + ',' + (0.25 + 0.65 * a).toFixed(2) + ')'; g.beginPath(); g.arc(0, 0, 15, 0, 7); g.fill(); g.restore();
+        }
+      }
       def.draw(g, k, col);
       g.restore();
 
@@ -582,7 +598,7 @@
             g.save(); g.translate(k.x * GRID, k.y * GRID); g.rotate((k.rot * Math.PI) / 2);
             g.fillStyle = th.flow; g.globalAlpha = a;
             const off = this.flow.get(k.id) || 0, spacing = 16, span = 80;
-            for (let s = -off % spacing - spacing; s < span; s += spacing) {
+            for (let s = (off % spacing) - spacing; s < span; s += spacing) {   // dots move from pin a to pin b when I is positive
               let x = -40 + ((s % span) + span) % span;
               g.beginPath(); g.arc(x, 0, 2.4, 0, 7); g.fill();
             }

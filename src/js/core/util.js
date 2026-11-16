@@ -39,16 +39,20 @@
    *  NOTE: lower-case m = milli, upper-case M or "meg" = mega. */
   function parseSI(text) {
     if (typeof text === 'number') return text;
-    const s = String(text).trim().replace(/µ/g, 'u').replace(/\s+/g, '');
+    let s = String(text).trim().replace(/µ/g, 'u').replace(/\s+/g, '');
+    s = /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?/.test(s) ? s.replace(/,/g, '') : s.replace(/,/g, '.');   // 1,000 = 1000 · 4,7k = 4.7k
     const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)(.*)$/.exec(s);
     if (!m) return NaN;
-    const num = parseFloat(m[1]);
-    const rest = m[2];
+    let num = parseFloat(m[1]), rest = m[2];
+    const fix = (x) => parseFloat(x.toPrecision(12));                  // 10u -> 0.00001, not 0.0000099999
     if (rest === '') return num;
+    // "4k7" = 4.7k, "4R7" = 4.7 ohm
+    const mm = /^(meg|[kKMmuUnNpPgGtTfFrR])(\d+)(.*)$/.exec(rest);
+    if (mm && !/^[eE]/.test(m[1].slice(-1))) { num = parseFloat(m[1].replace(/\.$/, '') + '.' + mm[2]); rest = /^[rR]$/.test(mm[1]) ? '' : mm[1] + mm[3]; if (rest === '') return fix(num); }
     if (/^(farads?|henr|hz|hertz|volts?|amps?|ohms?|sec|deg)/i.test(rest)) return num;
-    if (/^meg/i.test(rest)) return num * 1e6;
-    if (PREFIX[rest[0]] !== undefined) return num * PREFIX[rest[0]];
-    return num; // plain unit letters (V, A, F, H, Ω ...)
+    if (/^meg/i.test(rest)) return fix(num * 1e6);
+    if (PREFIX[rest[0]] !== undefined) return fix(num * PREFIX[rest[0]]);
+    return num; // plain unit letters (V, A, F, H, Ω, R ...)
   }
 
   // ------------------------------------------------------------- formatting

@@ -48,9 +48,12 @@
       "allowToChangeInstallationDirectory": true,
       "artifactName": "Incog-Electric-Lab-Setup-${version}.${ext}"
     },
-    "portable": {
+        "portable": {
       "artifactName": "Incog-Electric-Lab-Portable-${version}.${ext}"
     },
+    "publish": [
+      { "provider": "github", "owner": "drasca-pel", "repo": "Incog-electron" }
+    ],
     "fileAssociations": [
       {
         "ext": "incog",

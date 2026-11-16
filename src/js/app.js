@@ -60,10 +60,10 @@
         else app.sim.setNetlist(nl);
         app.sim.dt = dtValue();
         if (app.running && app.live && app.live.sol) { app.live.nl = nl; setStatus(nl); return; }
-        const sol = Incog.solve(nl, { mode: 'dc' });
+        const sol = Incog.solve(nl, { mode: 'dc', detect: true });
         app.live = { nl, sol, mode: 'dc', range: colourRange(nl, sol, 'dc') };
       } else {
-        const sol = Incog.solve(nl, { mode: app.mode, freq: app.freq });
+        const sol = Incog.solve(nl, { mode: app.mode, freq: app.freq, detect: true });
         app.live = { nl, sol, mode: app.mode, range: colourRange(nl, sol, app.mode) };
       }
     } catch (err) {

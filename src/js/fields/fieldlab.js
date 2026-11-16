@@ -44,9 +44,10 @@
 
   const F = {
     mode: 'electric',
-    items: { electric: PRESETS.electric['Dipole (+ and −)'](), magnetic: PRESETS.magnetic['Single wire (current out of page)']() },
+    items: { electric: [], magnetic: [] },
     view: { electric: { ox: 0, oy: 0, s: 900 }, magnetic: { ox: 0, oy: 0, s: 900 }, particle: { ox: 0, oy: 0, s: 1000 } },
-    opts: { lines: true, equip: true, heat: false, vectors: false, force: true },
+    opts: { lines: true, equip: true, heat: false, vectors: false, force: true, anim: true },
+    flow: [], vecs: [], animT: 0,
     sel: -1, mouse: null, drag: null, bgDirty: true, visible: false, centered: false,
     pt: null, // particle state
   };
@@ -70,6 +71,7 @@
   // ================================================================ background layer
   function drawBackground() {
     const c = bgG, it = items(), v = V();
+    F.flow = []; F.vecs = [];
     c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
     c.fillStyle = dark() ? '#0e131a' : '#f7f9fb'; c.fillRect(0, 0, W, H);
     // grid
@@ -155,7 +157,9 @@
   function drawPolyline(c, pts, color) {
     if (pts.length < 2) return;
     c.strokeStyle = color; c.fillStyle = color; c.lineWidth = 1.4; c.beginPath();
-    pts.forEach((p, i) => { const s = toS(p[0], p[1]); i ? c.lineTo(s[0], s[1]) : c.moveTo(s[0], s[1]); }); c.stroke();
+    const sp = [], cum = [0];                                   // remember the line (screen pixels) for the moving-flow layer
+    pts.forEach((p, i) => { const s = toS(p[0], p[1]); sp.push(s); if (i) cum.push(cum[i - 1] + Math.hypot(s[0] - sp[i - 1][0], s[1] - sp[i - 1][1])); i ? c.lineTo(s[0], s[1]) : c.moveTo(s[0], s[1]); }); c.stroke();
+    F.flow.push({ pts: sp, cum, len: cum[cum.length - 1] });
     // direction arrows every ~140 px
     let acc = 70, prev = toS(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) {
@@ -209,10 +213,44 @@
       const w = toW(sx, sy), f = fn(w[0], w[1]), m = mag(f); if (!(m > 0)) continue;
       const lg = Math.log10(m), alpha = Math.max(0.2, Math.min(0.95, 0.5 + (lg - (F.mode === 'electric' ? 2 : -5)) * 0.16));
       const a = Math.atan2(-f[1], f[0]); const L = 15;
+      F.vecs.push({ x: sx, y: sy, a, L });
       c.strokeStyle = c.fillStyle = (F.mode === 'electric' ? `rgba(255,200,61,${alpha})` : `rgba(120,230,170,${alpha})`);
       c.lineWidth = 1.6; c.beginPath(); c.moveTo(sx - Math.cos(a) * L / 2, sy - Math.sin(a) * L / 2); c.lineTo(sx + Math.cos(a) * L / 2, sy + Math.sin(a) * L / 2); c.stroke();
       arrowHead(c, sx + Math.cos(a) * L / 2, sy + Math.sin(a) * L / 2, a, 4.5);
     }
+  }
+
+  // ============================================== moving flow layer (animated field lines and arrows)
+  function pointAt(L, d) {
+    const cum = L.cum; let lo = 0, hi = cum.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (cum[mid] <= d) lo = mid; else hi = mid; }
+    const seg = cum[hi] - cum[lo] || 1, f = (d - cum[lo]) / seg, a = L.pts[lo], b = L.pts[hi];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  }
+  function drawFlow(c) {
+    const t = F.animT, elec = F.mode === 'electric';
+    const col = elec ? (dark() ? '255,214,90' : '214,120,0') : (dark() ? '120,240,175' : '0,140,80');
+    c.lineCap = 'round';
+    // pulses travelling along each field line, in the direction of the field
+    const gap = 44, speed = 70, tail = 14;
+    for (const L of F.flow) {
+      if (L.len < 24) continue;
+      const off = (t * speed) % gap;
+      for (let d = off; d < L.len; d += gap) {
+        const p1 = pointAt(L, d), p0 = pointAt(L, Math.max(0, d - tail));
+        const grad = c.createLinearGradient(p0[0], p0[1], p1[0], p1[1]);
+        grad.addColorStop(0, 'rgba(' + col + ',0)'); grad.addColorStop(1, 'rgba(' + col + ',0.95)');
+        c.strokeStyle = grad; c.lineWidth = 3; c.beginPath(); c.moveTo(p0[0], p0[1]); c.lineTo(p1[0], p1[1]); c.stroke();
+        c.fillStyle = 'rgba(' + col + ',1)'; c.beginPath(); c.arc(p1[0], p1[1], 2.6, 0, 7); c.fill();
+      }
+    }
+    // each field arrow gets a bright pulse that runs from its tail to its head
+    for (const v of F.vecs) {
+      const ph = (t * 0.9 + v.x * 0.013 + v.y * 0.017) % 1;
+      const x = v.x + Math.cos(v.a) * v.L * (ph - 0.5), y = v.y + Math.sin(v.a) * v.L * (ph - 0.5);
+      c.fillStyle = 'rgba(' + col + ',' + (0.35 + 0.65 * Math.sin(ph * Math.PI)).toFixed(2) + ')'; c.beginPath(); c.arc(x, y, 2.4, 0, 7); c.fill();
+    }
+    c.lineCap = 'butt';
   }
 
   // ================================================================== items
@@ -257,7 +295,7 @@
   }
 
   function hoverText() {
-    if (!F.mouse) return [];
+    if (!F.mouse || !items().length) return [];
     const w = toW(F.mouse[0], F.mouse[1]), it = items();
     const pos = `x = ${fmtSI(w[0], 'm', 3)},  y = ${fmtSI(w[1], 'm', 3)}`;
     if (F.mode === 'electric') { const e = P.electric(it, w[0], w[1]); return [pos, `V = ${fmtSI(e.V, 'V', 4)}`, `|E| = ${fmtSI(Math.hypot(e.Ex, e.Ey), 'V/m', 4)}  ∠ ${(Math.atan2(e.Ey, e.Ex) * 180 / Math.PI).toFixed(1)}°`]; }
@@ -266,13 +304,18 @@
   }
 
   // ================================================================== render
-  function render() {
+  function render(skipUI) {
     if (!cv || !W) return;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (F.mode === 'particle') { renderParticle(); return; }
     if (F.bgDirty) { drawBackground(); F.bgDirty = false; }
     g.drawImage(bg, 0, 0, W, H);
     const it = items();
+    if (F.opts.anim && it.length && (F.opts.lines || F.opts.vectors)) drawFlow(g);
+    if (!it.length) {
+      g.fillStyle = dark() ? '#8fa3b8' : '#5d7085'; g.font = '14px "Segoe UI",system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('Empty. Add ' + (F.mode === 'electric' ? 'a charge' : 'a wire or a magnet') + ' on the left, or pick a preset.', W / 2, H / 2);
+    }
     it.forEach((o, i) => drawItem(g, o, i));
     if (F.opts.force) it.forEach((o, i) => {
       const fi = forceInfo(o, i); if (!fi) return; const m = Math.hypot(fi.F[0], fi.F[1]); if (!(m > 0)) return;
@@ -284,6 +327,7 @@
       if (m > 0) arrow(g, F.mouse[0], F.mouse[1], F.mouse[0] + (f[0] / m) * 34, F.mouse[1] - (f[1] / m) * 34, F.mode === 'electric' ? '#ffc83d' : '#78e6aa', 2.4);
       g.fillStyle = dark() ? '#e8eef5' : '#1c2733'; g.beginPath(); g.arc(F.mouse[0], F.mouse[1], 3, 0, 7); g.fill();
     }
+    if (skipUI) return;                                   // animation frames only repaint the picture
     updateReadout(hoverText());
     updateSelPanel(false);
   }
@@ -464,7 +508,6 @@
     ui.presetSel.innerHTML = '';
     ui.presetSel.appendChild(h('option', { value: '' }, 'Presets ▾'));
     Object.keys(PRESETS[m]).forEach((k) => ui.presetSel.appendChild(h('option', { value: k }, k)));
-    if (m === 'particle' && !F.pt) resetParticle();
     updateSelPanel(true); F.bgDirty = true; render();
   }
 
@@ -479,9 +522,9 @@
     ui.pElectric = h('div', { class: 'btnrow' }, h('button', { onclick: () => addItem('pos') }, '＋ Positive charge'), h('button', { onclick: () => addItem('neg') }, '＋ Negative charge'));
     ui.pMagnetic = h('div', { class: 'btnrow' }, h('button', { onclick: () => addItem('out') }, '＋ Wire ⊙ (out)'), h('button', { onclick: () => addItem('in') }, '＋ Wire ⊗ (in)'), h('button', { onclick: () => addItem('magnet') }, '＋ Magnet'));
     const opt = (key, text) => { const cb = h('input', { type: 'checkbox' }); cb.checked = F.opts[key]; cb.addEventListener('change', () => { F.opts[key] = cb.checked; invalidate(); }); const sp = h('span', {}, text); return h('label', { class: 'field inline' }, cb, sp); };
-    const oLines = opt('lines', 'Field lines'), oEq = opt('equip', 'Equipotential lines'), oHeat = opt('heat', 'Colour map'), oVec = opt('vectors', 'Field arrows'), oF = opt('force', 'Force arrows on items');
+    const oLines = opt('lines', 'Field lines'), oEq = opt('equip', 'Equipotential lines'), oHeat = opt('heat', 'Colour map'), oVec = opt('vectors', 'Field arrows'), oF = opt('force', 'Force arrows on items'), oAnim = opt('anim', 'Moving field (animated)');
     ui.heatLbl = oHeat.querySelector('span'); ui.equipLbl = oEq.querySelector('span');
-    ui.optsBox = h('div', {}, h('div', { class: 'sect' }, 'Show'), oLines, oEq, oHeat, oVec, oF);
+    ui.optsBox = h('div', {}, h('div', { class: 'sect' }, 'Show'), oAnim, oLines, oEq, oHeat, oVec, oF);
     ui.sel = h('div', {});
 
     // particle controls
@@ -516,7 +559,7 @@
     cv = h('canvas', {}); bg = document.createElement('canvas'); bgG = bg.getContext('2d'); g = cv.getContext('2d');
     const main = h('div', { class: 'fl-main' },
       h('div', { class: 'fl-bar' },
-        h('button', { onclick: () => zoom(1.25) }, '＋'), h('button', { onclick: () => zoom(0.8) }, '−'), h('button', { onclick: () => { const v = V(); v.ox = 0; v.oy = 0; F.bgDirty = true; render(); } }, 'Centre'),
+        h('button', { title: 'Hide / show the side panel', onclick: () => { el.classList.toggle('hide-side'); setTimeout(resize, 30); } }, '◧ Panel'), h('button', { onclick: () => zoom(1.25) }, '＋'), h('button', { onclick: () => zoom(0.8) }, '−'), h('button', { onclick: () => { const v = V(); v.ox = 0; v.oy = 0; F.bgDirty = true; render(); } }, 'Centre'),
         h('span', { class: 'muted small' }, 'Scroll to zoom · drag the background to pan · drag items to move them · Delete removes the selected item')),
       h('div', { class: 'fl-wrap' }, cv, ui.read));
     el.appendChild(side); el.appendChild(main);
@@ -539,6 +582,7 @@
   function loop(now) {
     requestAnimationFrame(loop);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (F.visible && F.mode !== 'particle' && F.opts.anim) { F.animT += dt; render(true); return; }   // moving field lines / arrows
     if (!F.visible || F.mode !== 'particle' || !F.pt || !F.pt.running) return;
     stepParticle(dt); render();
   }

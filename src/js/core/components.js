@@ -119,7 +119,7 @@
   registry.register({
     type: 'R', name: 'Resistor', prefix: 'R', category: 'Passive', pins: [[-2, 0], [2, 0]], pinNames: ['a', 'b'],
     description: 'Ideal resistor. V = I·R',
-    
+    params: { value: NUM('Resistance', 'Ω', 1000) },
     text: (c) => fmtSI(c.params.value, 'Ω'),
     stamp(s, c, n, p) {
       const R = Math.max(p.value, 1e-9);
@@ -137,7 +137,7 @@
   registry.register({
     type: 'C', name: 'Capacitor', prefix: 'C', category: 'Passive', pins: [[-2, 0], [2, 0]], pinNames: ['a', 'b'],
     description: 'Ideal capacitor. i = C·dv/dt  (open circuit in DC, 1/jωC in AC)',
-       params: {
+    params: {
       value: NUM('Capacitance', 'F', 1e-6), ic: NUM('Initial voltage', 'V', 0),
       polarized: { label: 'Polarized (electrolytic)', unit: '', default: 0, kind: 'bool' },
     },
@@ -164,7 +164,7 @@
         commit: (x) => s.state.set(c.id, { v: vab(x).re, i: cur(x) }),
       };
     },
-       draw(g, c, col) {
+    draw(g, c, col) {
       if (!(c.params && c.params.polarized)) {          // ceramic / non-polarized: two straight plates
         twoLead(g, 5);
         line(g, -5, -14, -5, 14); line(g, 5, -14, 5, 14);
@@ -175,7 +175,6 @@
       line(g, -5, -14, -5, 14);
       g.beginPath(); g.moveTo(5, -14); g.quadraticCurveTo(13, 0, 5, 14); g.stroke();
       txt(g, '+', -15, -12, 13, col.stroke);
-    
     },
   });
 
@@ -342,6 +341,35 @@
     text: () => '',
     draw(g) {
       line(g, 0, 0, 0, 10); line(g, -13, 10, 13, 10); line(g, -8, 15, 8, 15); line(g, -3, 20, 3, 20);
+    },
+  });
+
+  // ---- loads
+  registry.register({
+    type: 'LAMP', name: 'Light bulb', prefix: 'B', category: 'Loads', pins: [[-2, 0], [2, 0]], pinNames: ['a', 'b'],
+    description: 'Bulb: R = V² / P from its rating. Glows brighter as its power rises. BLOWS if the voltage across it goes above the Maximum voltage (DC volts, or RMS in AC; in Transient the instantaneous voltage). Untick "Blown" to fit a new bulb',
+    params: {
+      ratedV: NUM('Maximum voltage', 'V', 5), ratedP: NUM('Power at maximum voltage', 'W', 1),
+      blown: { label: 'Blown (untick to fit a new bulb)', unit: '', default: 0, kind: 'bool' },
+    },
+    text: (c) => (c.params.blown ? 'BLOWN' : fmtSI(c.params.ratedV, 'V') + ' max'),
+    stamp(s, c, n, p) {
+      if (p.blown) return { i: () => Cx.ZERO };                       // burnt out = open circuit
+      const R = Math.max((p.ratedV * p.ratedV) / Math.max(p.ratedP, 1e-12), 1e-9);
+      s.Y(n[0], n[1], 1 / R, 0);
+      return { i: (x) => Cx.scale(Cx.sub(x.v(n[0]), x.v(n[1])), 1 / R) };
+    },
+    glow: (c, r) => (c.params.blown ? 0 : Math.max(0, r.p || 0) / Math.max(c.params.ratedP, 1e-12)),   // 1 = full brightness
+    overload: (p, r, mode) => !p.blown && (mode === 'ac' ? Cx.abs(r.v) / Math.SQRT2 : Math.abs(r.v.re)) > p.ratedV * 1.001,
+    draw(g, c) {
+      twoLead(g, 15); circle(g, 0, 0, 15);
+      if (c.params && c.params.blown) {                               // broken filament + crack
+        line(g, -10.6, -10.6, -3.5, -3.5); line(g, 10.6, 10.6, 3.5, 3.5);
+        line(g, -10.6, 10.6, -3, 3); line(g, 10.6, -10.6, 3, -3);
+        line(g, -2, -9, 2, -3); line(g, 2, -3, -1, 1);
+        return;
+      }
+      line(g, -10.6, -10.6, 10.6, 10.6); line(g, -10.6, 10.6, 10.6, -10.6);
     },
   });
 

@@ -64,6 +64,15 @@
     nodeV(name) { const n = this.nl.nodeByName(name); return n ? this.v(n.index) : null; }
   }
 
+  const fmtV = (v) => Incog.util.fmtSI(v, 'V');
+  function burnNotice(msg) {
+    setTimeout(() => {
+      const t = typeof document !== 'undefined' && document.getElementById('toast');
+      if (t) { t.textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 5000); }
+      if (Incog.tabs && Incog.tabs.notify) Incog.tabs.notify('change');
+    }, 0);
+  }
+
   function solve(nl, opts = {}) {
     const mode = opts.mode || 'dc';
     const N = nl.nodes.length;
@@ -111,6 +120,18 @@
       const s = Cx.scale(Cx.mul(v, Cx.conj(i)), half);
       results.set(e.comp.id, { v, i, s, p: s.re, q: s.im });
     }
+    // parts that can burn out (bulbs): only for the real circuit (opts.detect), then solve again with the part open
+    if (opts.detect) {
+      let blew = false;
+      for (const e of nl.elements) {
+        const r = results.get(e.comp.id);
+        if (r && e.def.overload && e.def.overload(e.p, r, mode)) {
+          e.p.blown = 1; if (e.comp.params) e.comp.params.blown = 1; blew = true;
+          burnNotice('Bulb ' + e.comp.label + ' blew: ' + fmtV(mode === 'ac' ? Cx.abs(r.v) / Math.SQRT2 : Math.abs(r.v.re)) + ' is above its ' + fmtV(e.p.ratedV) + ' maximum');
+        }
+      }
+      if (blew) return solve(nl, opts);
+    }
     if (mode === 'tran') for (const h of handles.values()) if (h.commit) h.commit(x);
     return new Solution(nl, mode, { ...opts, mode }, xr, xi, results, handles);
   }
@@ -147,7 +168,7 @@
     step() {
       this.t += this.dt;
       const be = this.method === 'be' || this.forceEuler > 0;
-      const sol = solve(this.nl, { mode: 'tran', t: this.t, dt: this.dt, method: be ? 'be' : 'tr', state: this.state });
+      const sol = solve(this.nl, { detect: true, mode: 'tran', t: this.t, dt: this.dt, method: be ? 'be' : 'tr', state: this.state });
       if (this.forceEuler > 0) this.forceEuler--;
       this.steps++;
       return sol;
