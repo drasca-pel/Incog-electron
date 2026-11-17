@@ -1,7 +1,7 @@
 {
   "name": "incog-electric-lab",
   "productName": "Incog Electric Lab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline desktop electrical lab: circuit simulator, network theorems, AC/DC/transient analysis, electric and magnetic fields.",
   "main": "electron/main.js",
   "scripts": {

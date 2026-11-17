@@ -31,6 +31,8 @@
 
   /** poles of a magnet item: [{x, y, qm}] (qm in A·m) */
   function poles(it) {
+    if (it.pole === 'north') return [{ x: it.x, y: it.y, qm: it.m }];          // one isolated north pole
+    if (it.pole === 'south') return [{ x: it.x, y: it.y, qm: -it.m }];         // one isolated south pole
     const a = ((it.angle || 0) * Math.PI) / 180, h = (it.len || 0.1) / 2;
     return [{ x: it.x + h * Math.cos(a), y: it.y + h * Math.sin(a), qm: it.m }, { x: it.x - h * Math.cos(a), y: it.y - h * Math.sin(a), qm: -it.m }];
   }
@@ -84,6 +86,14 @@
     return { Fx: -me.I * b.By, Fy: me.I * b.Bx, Bx: b.Bx, By: b.By };
   }
 
+  /** force (N) on a magnet from all the OTHER sources: each pole feels F = qm * B */
+  function forceOnMagnet(items, idx) {
+    const me = items[idx], others = items.filter((_, i) => i !== idx);
+    let Fx = 0, Fy = 0;
+    for (const p of poles(me)) { const b = magnetic(others, p.x, p.y); Fx += p.qm * b.Bx; Fy += p.qm * b.By; }
+    return { Fx, Fy };
+  }
+
   /** Boris pusher in 2-D with B along z.  s = {x,y,vx,vy}.  Efn(x,y)->[Ex,Ey].  Conserves |v| in a pure B field. */
   function boris(s, Efn, Bz, q, m, dt) {
     const [Ex, Ey] = Efn(s.x, s.y);
@@ -99,9 +109,10 @@
 
   const PARTICLES = {
     electron: { name: 'Electron', q: -1.602176634e-19, m: 9.1093837e-31 },
+    positron: { name: 'Positron', q: 1.602176634e-19, m: 9.1093837e-31 },
     proton: { name: 'Proton', q: 1.602176634e-19, m: 1.67262192e-27 },
     alpha: { name: 'Alpha particle', q: 3.204353268e-19, m: 6.6446573e-27 },
   };
 
-  Incog.physics = { K, MU0, SOFT, electric, magnetic, poles, trace, forceOnCharge, forceOnWire, boris, PARTICLES };
+  Incog.physics = { K, MU0, SOFT, electric, magnetic, poles, trace, forceOnCharge, forceOnWire, forceOnMagnet, boris, PARTICLES };
 })(typeof window !== 'undefined' ? window : globalThis);
