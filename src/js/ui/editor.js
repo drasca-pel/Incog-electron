@@ -230,9 +230,17 @@
         e.preventDefault(); const p = pos(e);
         this.zoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1 / 1.12);
       }, { passive: false });
-      cv.addEventListener('mousedown', (e) => this._down(e, pos(e)));
-      window.addEventListener('mousemove', (e) => this._move(e, pos(e)));
-      window.addEventListener('mouseup', (e) => this._up(e, pos(e)));
+      cv.style.touchAction = 'none';
+      cv.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
+        e.preventDefault();
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+        this._down(e, pos(e));
+      });
+      cv.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse' || e.buttons) this._move(e, pos(e)); });
+      const finishPointer = (e) => this._up(e, pos(e));
+      cv.addEventListener('pointerup', finishPointer);
+      cv.addEventListener('pointercancel', finishPointer);
       cv.addEventListener('mouseleave', () => { this.mouse.inside = false; this.invalidate(); });
       cv.addEventListener('dblclick', (e) => this._dbl(e, pos(e)));
       window.addEventListener('keydown', (e) => this._key(e));

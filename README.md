@@ -178,3 +178,29 @@ git push origin v1.0.0
 Then open the repository's **Actions** tab and download the installers from the finished run.
 #   I n c o g - e l e c t r o n  
  
+## 6. Mobile app (Android/iPhone) — offline-first
+
+The `src/` web app is also a Progressive Web App (PWA). It does not need an app server or account to run its circuit engine. Once the PWA has been opened online once and its service worker has cached the app files, the app shell works offline. Named mobile projects are stored in IndexedDB on that device; they are not sent to GitHub. Export a `.incog` file from My Projects to move a design to another device.
+
+### Publish it so other people can install it
+
+1. Push this project to the GitHub repository's `main` (or `master`) branch.
+2. On GitHub, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**.
+3. The `Deploy mobile web app (PWA)` workflow publishes the contents of `src/`. Wait for it to finish successfully.
+4. GitHub will show a public Pages URL, usually `https://OWNER.github.io/REPOSITORY/`. Share that URL.
+5. On Android, open the URL in Chrome, choose **Install app** or **Add to Home screen**. On iPhone, open it in Safari, tap **Share → Add to Home Screen**.
+6. Open the installed app once while online. The service worker caches the application. Thereafter, the app shell and local simulator can be used offline.
+
+A PWA is installed from a website; it is not an `.apk` file. This project is Electron for desktop, so its existing Windows/macOS/Linux installers do not produce an Android APK. A native APK would require a separate Android packaging project. The PWA is the simplest way to share an installable mobile version without maintaining a server.
+
+### Mobile storage notes
+
+- On mobile, **Save** stores the current circuit in the in-app **My Projects** library (IndexedDB), with a project name.
+- **Projects** opens the saved-project list; tap **Open**, **Rename**, **Export**, or **Delete**.
+- The current project is updated in the library after edits while it is open. The app also keeps its existing browser autosave snapshot.
+- Browser storage is local to that browser/app installation. Clearing browser data or uninstalling the PWA can erase local projects. Export important work as a `.incog` backup.
+- Desktop Electron keeps its existing native file-dialog workflow.
+
+### Local mobile testing
+
+Run `npm run web` on your computer and open `http://COMPUTER-LAN-IP:5173` on your phone while both devices are on the same Wi-Fi. Service workers require HTTPS or localhost, so offline PWA installation should be tested on the GitHub Pages HTTPS address (or another HTTPS host). The local LAN URL is for layout and touch testing.

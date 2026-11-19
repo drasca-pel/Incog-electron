@@ -114,13 +114,13 @@
     { id: 'files', title: 'Saving and opening', html: `
       <h2>Saving and opening</h2>
       <ul>
-        <li><b>Save</b> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) writes your circuit to a real <code>.incog</code> file on your computer. The first time you choose where. After that it overwrites the same file.</li>
+        <li><b>Save</b> stores your circuit. On desktop it writes a <code>.incog</code> file; on mobile it saves a named project in the in-app My Projects library.</li>
         <li><b>Save As</b> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) saves a copy under a new name.</li>
-        <li><b>Open</b> (<kbd>Ctrl</kbd>+<kbd>O</kbd>) loads a <code>.incog</code> file. In the installed app you can also double-click a <code>.incog</code> file.</li>
+        <li><b>Open</b> loads a <code>.incog</code> file on desktop. On mobile, open My Projects to browse saved projects or import an <code>.incog</code> backup.</li>
         <li>The window title shows the file name, with a • in front when there are unsaved changes.</li>
         <li><b>New</b> clears the canvas.</li>
       </ul>
-      <p>You can send a <code>.incog</code> file to another person, and they can open it in their copy of the app.</p>` },
+      <p>Use Export in the mobile project list to create a <code>.incog</code> backup that another person can import.</p>` },
     { id: 'panels', title: 'Panels and layout', html: `
       <h2>Panels and layout</h2>
       <ul>

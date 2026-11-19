@@ -595,7 +595,9 @@
   }
   function bind() {
     const pos = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    cv.addEventListener('mousedown', (e) => {
+    cv.style.touchAction = 'none';
+    cv.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {}
       const p = pos(e);
       if (F.mode === 'particle') { const j = hitParticle(p[0], p[1]); if (j >= 0 && e.button === 0) { selectParticle(j); render(); return; } }
       const so = items()[F.sel];
@@ -605,7 +607,7 @@
       else { if (e.button === 0 && F.mode !== 'particle') { F.sel = -1; updateSelPanel(true); } F.drag = { type: 'pan', sx: p[0], sy: p[1], ox: V().ox, oy: V().oy }; }
       render();
     });
-    window.addEventListener('mousemove', (e) => {
+    cv.addEventListener('pointermove', (e) => {
       if (!F.visible) return; const p = pos(e); const inside = p[0] >= 0 && p[1] >= 0 && p[0] <= W && p[1] <= H;
       F.mouse = inside || F.drag ? p : null;
       if (F.drag) {
@@ -615,7 +617,8 @@
       }
       render();
     });
-    window.addEventListener('mouseup', () => { const was = F.drag && F.drag.type; F.drag = null; if (was === 'rot') updateSelPanel(true); });
+    cv.addEventListener('pointerup', () => { const was = F.drag && F.drag.type; F.drag = null; if (was === 'rot') updateSelPanel(true); });
+    cv.addEventListener('pointercancel', () => { F.drag = null; render(); });
     cv.addEventListener('mouseleave', () => { if (!F.drag) { F.mouse = null; render(); } });
     cv.addEventListener('wheel', (e) => {
       e.preventDefault(); const p = pos(e), v = V(), w = toW(p[0], p[1]), f = e.deltaY < 0 ? 1.15 : 1 / 1.15;

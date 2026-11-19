@@ -27,32 +27,40 @@
     "files": [
       "src/**/*",
       "electron/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "win": {
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "assets/icon.ico"
     },
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.education"
+      "category": "public.app-category.education",
+      "icon": "assets/icon.icns"
     },
     "linux": {
       "target": "AppImage",
-      "category": "Education"
+      "category": "Education",
+      "icon": "assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "Incog-Electric-Lab-Setup-${version}.${ext}"
     },
-        "portable": {
+    "portable": {
       "artifactName": "Incog-Electric-Lab-Portable-${version}.${ext}"
     },
     "publish": [
-      { "provider": "github", "owner": "drasca-pel", "repo": "Incog-electron" }
+      {
+        "provider": "github",
+        "owner": "drasca-pel",
+        "repo": "Incog-electron"
+      }
     ],
     "fileAssociations": [
       {

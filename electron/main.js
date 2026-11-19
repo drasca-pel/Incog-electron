@@ -93,7 +93,7 @@ ipcMain.on('app:check-update', () => checkForUpdates(true));
 function createWindow() {
   win = new BrowserWindow({
     width: 1500, height: 920, minWidth: 1000, minHeight: 640,
-    title: 'Incog Electric Lab', backgroundColor: '#0b1017',
+    title: 'Incog Electric Lab', backgroundColor: '#0b1017', icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.js') },
   });
   Menu.setApplicationMenu(null);                       // remove the default menu bar

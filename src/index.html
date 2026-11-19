@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121923">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'">
   <title>Incog Electric Lab</title>
   <link rel="stylesheet" href="css/style.css">
@@ -22,6 +26,7 @@
       <button id="btnOpen" title="Open circuit file (Ctrl+O)">Open</button>
       <button id="btnSave" title="Save to a file on this computer (Ctrl+S)">Save</button>
       <button id="btnSaveAs" title="Save as a new file (Ctrl+Shift+S)">Save As</button>
+      <button id="btnProjects" title="Saved projects">My Projects</button>
       <select id="selExamples" title="Load an example circuit"><option value="">Examples ▾</option></select>
       <button id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
       <button id="btnRedo" title="Redo (Ctrl+Y)">↷</button>
@@ -37,6 +42,7 @@
 
     <section id="stage">
       <div id="toolbar">
+        <div class="group" id="mobilePanels"><button id="btnPartsPanel" type="button">Parts</button><button id="btnPropertiesPanel" type="button">Properties</button></div>
         <div class="group" id="toolGroup">
           <button data-tool="select" class="tool active" title="Select / move (V)">⬉ Select</button>
           <button data-tool="wire" class="tool" title="Draw wire (W). Click a part's pin to start a wire too">✎ Wire</button>
@@ -142,6 +148,14 @@
     </div>
   </div></div>
 
+  <section id="projectLibrary" class="project-library hidden" role="dialog" aria-modal="true" aria-labelledby="projectLibraryTitle">
+    <div class="project-library-card">
+      <header class="project-library-head"><div><h2 id="projectLibraryTitle">My Projects</h2><p>Projects are stored on this device and available offline.</p></div><button id="closeProjects" aria-label="Close">✕</button></header>
+      <form id="projectSaveForm" class="project-save-form"><input id="projectName" type="text" maxlength="80" placeholder="Name your project" required><button class="primary" type="submit">Save project</button><button id="projectImport" type="button">Import .incog</button></form>
+      <div id="projectList" class="project-list"></div>
+      <p class="muted small">Your projects stay in this browser on this device. Use Export to move a project to another device.</p>
+    </div>
+  </section>
   <div id="toast" class="toast hidden"></div>
 
   <!-- core engine -->
@@ -168,5 +182,10 @@
   <script src="js/ui/panels.js"></script>
   <script src="js/ui/updates.js"></script>
   <script src="js/ui/manual.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    }
+  </script>
 </body>
 </html>

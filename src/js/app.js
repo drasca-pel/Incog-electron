@@ -91,10 +91,10 @@
     Incog.tabs.notify('change'); markDirty();
     clearTimeout(app._saveT); app._saveT = setTimeout(autosave, 600);
   }
-  function autosave() { store.set('incog.autosave', JSON.stringify({ circuit: exportObj() })); }
+  function autosave() { store.set('incog.autosave', JSON.stringify({ circuit: exportObj() })); if (mobileLibrary && currentProjectId) saveLibraryProject(currentProjectId, currentProjectName, exportObj()).catch(() => {}); }
   function exportObj() { const o = app.circuit.toJSON(); o.analysis = { mode: app.mode, freq: app.freq, rms: app.rms }; return o; }
 
-  function onSelect() { Incog.tabs.notify('select'); }
+  function onSelect() { Incog.tabs.notify('select'); if (mobileLibrary && window.matchMedia('(max-width: 760px)').matches) { $('side').classList.add('mobile-open'); $('palette').classList.remove('mobile-open'); } }
   function onTool(tool) {
     document.querySelectorAll('#toolGroup .tool').forEach((b) => b.classList.toggle('active', b.dataset.tool === tool));
   }
@@ -225,6 +225,7 @@
   }
   function newCircuit() {
     if (app.circuit.comps.length && !confirm('Start a new circuit? Unsaved changes will be lost.')) return;
+    if (mobileLibrary) { currentProjectId = null; currentProjectName = ''; }
     app.circuit.reset(); loadObject(exportObj(), true); app.setMode('dc');
   }
   // ---- real files on disk: Save, Save As, Open (desktop app uses native dialogs; Chrome/Edge use the file picker)
@@ -239,6 +240,7 @@
   function setDirty(d) { app.file.dirty = d; updateTitle(); }
   function markDirty() { if (!app.file.dirty) setDirty(true); }
   async function saveFile(saveAs) {
+    if (mobileLibrary) { if (saveAs) { currentProjectId = null; currentProjectName = ''; $('projectName').value = ''; showProjectLibrary(); $('projectName').focus(); return; } if (!currentProjectId) { showProjectLibrary(); $('projectName').focus(); app.toast('Name your project, then tap Save project.'); return; } await saveToLibrary(false); return; }
     const text = JSON.stringify(exportObj(), null, 1), name = (app.circuit.title || 'circuit') + '.incog';
     try {
       if (window.incogFile) {
@@ -259,6 +261,7 @@
     } catch (e) { app.toast('That file could not be opened: ' + e.message, 5000); }
   }
   async function openDialog() {
+    if (mobileLibrary) { showProjectLibrary(); return; }
     if (app.file.dirty && !confirm('Open another file? Unsaved changes will be lost.')) return;
     try {
       if (window.incogFile) { const r = await window.incogFile.open(); if (r && !r.canceled) openText(r.text, r.path.split(/[\\/]/).pop(), r.path); }
@@ -267,6 +270,65 @@
     } catch (e) { if (e.name !== 'AbortError') app.toast('Could not open: ' + e.message, 5000); }
   }
   function openFile(file) { const r = new FileReader(); r.onload = () => openText(r.result, file.name); r.readAsText(file); }
+
+  // Mobile project library: IndexedDB keeps named projects inside the app, offline.
+  const mobileLibrary = !window.incogFile && (window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent));
+  let projectDbPromise = null, currentProjectId = null, currentProjectName = '';
+  function projectDb() {
+    if (!projectDbPromise) projectDbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open('incog-electric-lab', 1);
+      req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains('projects')) { const st = db.createObjectStore('projects', { keyPath: 'id' }); st.createIndex('updatedAt', 'updatedAt'); } };
+      req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
+    });
+    return projectDbPromise;
+  }
+  async function saveLibraryProject(id, name, data) {
+    const db = await projectDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('projects', 'readwrite');
+      tx.objectStore('projects').put({ id, name, data, updatedAt: Date.now() });
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function getLibraryProjects() {
+    const db = await projectDb();
+    return new Promise((resolve, reject) => { const r = db.transaction('projects').objectStore('projects').getAll(); r.onsuccess = () => resolve((r.result || []).sort((a,b) => b.updatedAt-a.updatedAt)); r.onerror = () => reject(r.error); });
+  }
+  async function deleteLibraryProject(id) {
+    const db = await projectDb();
+    return new Promise((resolve, reject) => { const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').delete(id); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+  }
+  function makeProjectId() { return 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
+  function showProjectLibrary() { $('projectLibrary').classList.remove('hidden'); refreshProjectList(); }
+  function hideProjectLibrary() { $('projectLibrary').classList.add('hidden'); }
+  async function refreshProjectList() {
+    const list = $('projectList'); list.innerHTML = '';
+    try {
+      const projects = await getLibraryProjects();
+      if (!projects.length) { const empty = document.createElement('p'); empty.className = 'project-empty'; empty.textContent = 'No saved projects yet. Enter a name above to save your first circuit.'; list.appendChild(empty); return; }
+      projects.forEach((project) => {
+        const row = document.createElement('article'); row.className = 'project-row';
+        const info = document.createElement('div'); info.className = 'project-info';
+        const title = document.createElement('strong'); title.textContent = project.name;
+        const date = document.createElement('span'); date.textContent = new Date(project.updatedAt).toLocaleString();
+        info.append(title, date);
+        const actions = document.createElement('div'); actions.className = 'project-actions';
+        const open = document.createElement('button'); open.textContent = 'Open'; open.className = 'primary'; open.onclick = () => { if (app.file.dirty && !confirm('Open this project? Unsaved changes will be replaced.')) return; openText(JSON.stringify(project.data), project.name); currentProjectId = project.id; currentProjectName = project.name; hideProjectLibrary(); };
+        const exportBtn = document.createElement('button'); exportBtn.textContent = 'Export'; exportBtn.onclick = () => app.download((project.name || 'circuit') + '.incog', JSON.stringify(project.data, null, 1), 'application/json');
+        const more = document.createElement('button'); more.textContent = 'Rename'; more.onclick = async () => { const n = prompt('New project name', project.name); if (n && n.trim()) { await saveLibraryProject(project.id, n.trim(), project.data); if (currentProjectId === project.id) currentProjectName = n.trim(); refreshProjectList(); } };
+        const del = document.createElement('button'); del.textContent = 'Delete'; del.className = 'danger'; del.onclick = async () => { if (confirm('Delete "' + project.name + '"?')) { await deleteLibraryProject(project.id); if (currentProjectId === project.id) { currentProjectId = null; currentProjectName = ''; } refreshProjectList(); } };
+        actions.append(open, exportBtn, more, del); row.append(info, actions); list.appendChild(row);
+      });
+    } catch (e) { list.textContent = 'Project storage is unavailable in this browser: ' + e.message; }
+  }
+  async function saveToLibrary(forceNew) {
+    let name = forceNew || !currentProjectId ? $('projectName').value.trim() : currentProjectName;
+    if (!name) { showProjectLibrary(); $('projectName').focus(); app.toast('Enter a name for this project.'); return; }
+    if (forceNew || !currentProjectId) currentProjectId = makeProjectId();
+    currentProjectName = name;
+    try { await saveLibraryProject(currentProjectId, currentProjectName, exportObj()); setDirty(false); $('projectName').value = ''; app.toast('Saved project: ' + currentProjectName); await refreshProjectList(); }
+    catch (e) { app.toast('Could not save project: ' + e.message, 5000); }
+  }
   function loadExample(id) {
     const ex = Incog.examples.list.find((e) => e.id === id); if (!ex) return;
     const c = Incog.examples.build(ex);
@@ -294,12 +356,21 @@
     sel.addEventListener('change', () => { if (sel.value) loadExample(sel.value); sel.value = ''; });
 
     // toolbar
+    $('btnPartsPanel').onclick = () => { $('palette').classList.toggle('mobile-open'); $('side').classList.remove('mobile-open'); };
+    $('btnPropertiesPanel').onclick = () => { $('side').classList.toggle('mobile-open'); $('palette').classList.remove('mobile-open'); };
     document.querySelectorAll('#toolGroup .tool').forEach((b) => b.addEventListener('click', () => app.editor.setTool(b.dataset.tool)));
     $('btnZoomIn').onclick = () => app.editor.zoom(1.25); $('btnZoomOut').onclick = () => app.editor.zoom(0.8); $('btnFit').onclick = () => app.editor.fit();
     $('btnRotate').onclick = () => app.editor.rotateSelection(); $('btnDelete').onclick = () => app.editor.deleteSelection();
     $('btnUndo').onclick = () => app.editor.undo(); $('btnRedo').onclick = () => app.editor.redo();
     $('btnNew').onclick = newCircuit; $('btnSave').onclick = () => saveFile(false); $('btnSaveAs').onclick = () => saveFile(true); $('btnOpen').onclick = openDialog;
-    $('fileInput').addEventListener('change', (e) => { if (e.target.files[0]) openFile(e.target.files[0]); e.target.value = ''; });
+    $('btnProjects').onclick = showProjectLibrary; $('closeProjects').onclick = hideProjectLibrary;
+    $('projectLibrary').addEventListener('click', (e) => { if (e.target === $('projectLibrary')) hideProjectLibrary(); });
+    $('projectSaveForm').addEventListener('submit', (e) => { e.preventDefault(); saveToLibrary(true); });
+    $('projectImport').onclick = () => $('fileInput').click();
+    if (!mobileLibrary) $('btnProjects').hidden = true;
+    else { $('btnOpen').textContent = 'Projects'; $('btnSave').textContent = 'Save'; $('btnSaveAs').textContent = 'Save New'; }
+
+    $('fileInput').addEventListener('change', (e) => { if (e.target.files[0]) { if (mobileLibrary) { currentProjectId = null; currentProjectName = e.target.files[0].name.replace(/\.incog$/i, ''); $('projectName').value = currentProjectName; } openFile(e.target.files[0]); } e.target.value = ''; });
     const bind = (id, key) => $(id).addEventListener('change', (e) => { app.editor[key] = e.target.checked; app.editor.invalidate(); });
     bind('chkNodes', 'showNodes'); bind('chkValues', 'showValues'); bind('chkColors', 'showColors'); bind('chkFlow', 'showFlow');
     $('chkRms').addEventListener('change', (e) => { app.rms = e.target.checked; Incog.tabs.notify('change'); });
