@@ -747,7 +747,10 @@
     F.pts = [makePart('proton')]; F.ptSel = 0; buildPartList(); loadSelectedIntoFields();
 
     ui.read = h('div', { class: 'fl-read', style: { display: 'none' } });
+    const togglePanel = () => { el.classList.toggle('hide-side'); el.classList.toggle('fl-open'); setTimeout(resize, 30); };
     const side = h('div', { class: 'fl-side' },
+      h('button', { class: 'grabber mobonly fl-grab', 'aria-label': 'Close panel', onclick: togglePanel }),
+      h('button', { class: 'sheet-x mobonly fl-x', 'aria-label': 'Close', onclick: togglePanel }, '✕'),
       h('div', { class: 'seg wide' }, ui.seg), h('label', { class: 'field' }, h('span', {}, 'Presets'), ui.presetSel),
       ui.pElectric, ui.pMagnetic, ui.pParticle, ui.optsBox, ui.sel, ui.sum,
       h('div', { class: 'sect' }, 'Notes'),
@@ -755,7 +758,7 @@
     cv = h('canvas', {}); bg = document.createElement('canvas'); bgG = bg.getContext('2d'); g = cv.getContext('2d');
     const main = h('div', { class: 'fl-main' },
       h('div', { class: 'fl-bar' },
-        h('button', { title: 'Hide / show the side panel', onclick: () => { el.classList.toggle('hide-side'); setTimeout(resize, 30); } }, '◧ Panel'), h('button', { onclick: () => zoom(1.25) }, '＋'), h('button', { onclick: () => zoom(0.8) }, '−'), h('button', { onclick: () => { const v = V(); v.ox = 0; v.oy = 0; F.bgDirty = true; render(); } }, 'Centre'),
+        h('button', { title: 'Hide / show the side panel', onclick: togglePanel }, h('span', { class: 'deskonly' }, '◧ Panel'), h('span', { class: 'mobonly' }, '☰ Controls')), h('button', { onclick: () => zoom(1.25) }, '＋'), h('button', { onclick: () => zoom(0.8) }, '−'), h('button', { onclick: () => { const v = V(); v.ox = 0; v.oy = 0; F.bgDirty = true; render(); } }, 'Centre'),
         h('span', { class: 'muted small' }, 'Scroll to zoom · drag the background to pan · drag items to move them · Delete removes the selected item')),
       h('div', { class: 'fl-wrap' }, cv, ui.read));
     el.appendChild(side); el.appendChild(main);

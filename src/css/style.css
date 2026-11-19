@@ -43,8 +43,25 @@ input:disabled { opacity: .55; }
 .labs { display: flex; gap: 4px; background: var(--panel2); padding: 3px; border-radius: 9px; border: 1px solid var(--line); }
 .labtab { border: 0; background: transparent; padding: 4px 14px; border-radius: 6px; font-weight: 600; color: var(--muted); }
 .labtab.active { background: var(--accent); color: var(--accent-text); }
-.filebtns { display: flex; gap: 6px; align-items: center; }
-.filebtns.fieldmode #btnNew, .filebtns.fieldmode #btnOpen, .filebtns.fieldmode #btnSave, .filebtns.fieldmode #selExamples, .filebtns.fieldmode #btnUndo, .filebtns.fieldmode #btnRedo { display: none; }
+#top .iconbtn { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; font-size: 17px; border-radius: 9px; line-height: 1; }
+.topundo { display: flex; gap: 4px; }
+.topundo.off { visibility: hidden; }
+.tool i, #editGroup i, #bottomNav i, .menu i { font-style: normal; }
+.fiticon { display: none; }
+.mobonly { display: none; }
+.deskonly { display: initial; }
+.deskonly.group, .deskonly.topundo { display: flex; }
+
+/* ---------- main menu (one ☰ button; same on desktop and phone) ---------- */
+.menu { position: fixed; left: 8px; top: 52px; width: 252px; max-width: calc(100vw - 16px); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 6px; z-index: 80; display: flex; flex-direction: column; gap: 2px; }
+.menu button, .menurow { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; text-align: left; padding: 10px 11px; border-radius: 9px; width: 100%; cursor: pointer; }
+.menu button:hover, .menurow:hover { background: var(--panel2); }
+.menu i { width: 20px; text-align: center; }
+.menurow select { flex: 1; border: 0; background: transparent; padding: 0; cursor: pointer; }
+.menurow:has(select[hidden]) { display: none; }
+.menusep { height: 1px; background: var(--line); margin: 4px 6px; }
+.menu.fieldmode #btnNew, .menu.fieldmode #btnOpen, .menu.fieldmode #btnSave, .menu.fieldmode #btnSaveAs, .menu.fieldmode #btnProjects, .menu.fieldmode .menurow { display: none; }
+.scrim { position: fixed; inset: 0; z-index: 70; background: transparent; }
 
 /* ---------- labs ---------- */
 .lab { flex: 1; min-height: 0; display: flex; }
@@ -150,10 +167,10 @@ details { margin-top: 16px; } summary { cursor: pointer; color: var(--accent); f
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); padding: 9px 16px; border-radius: 10px; box-shadow: var(--shadow); max-width: 70vw; z-index: 60; }
 ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; border: 2px solid var(--panel); }
 
-@media (max-width: 1100px) { #lab-circuit { grid-template-columns: 150px minmax(0, 1fr) 330px; } }
-/* ---- slide-out side panels (Parts / Properties) ---- */
+/* ---------- desktop: slide-out side panels (Parts left / Properties right) ---------- */
 @property --lw { syntax: '<length>'; inherits: true; initial-value: 188px; }
 @property --rw { syntax: '<length>'; inherits: true; initial-value: 392px; }
+#rail { display: contents; }
 #lab-circuit { --lw: 188px; --rw: 392px; grid-template-columns: var(--lw) minmax(0, 1fr) var(--rw); transition: --lw .22s ease, --rw .22s ease; }
 #palette { grid-column: 1; overflow-x: hidden; min-width: 0; }
 #stage { grid-column: 2; }
@@ -163,9 +180,16 @@ details { margin-top: 16px; } summary { cursor: pointer; color: var(--accent); f
 #lab-circuit.hide-left { --lw: 0px; }
 #lab-circuit.hide-right { --rw: 0px; }
 #lab-circuit.hide-left #palette, #lab-circuit.hide-right #side { visibility: hidden; padding: 0; border-width: 0; transition: visibility 0s .22s; }
-@media (max-width: 1100px) { #lab-circuit { --lw: 150px; --rw: 330px; } #lab-circuit.hide-left { --lw: 0px; } #lab-circuit.hide-right { --rw: 0px; } }
-/* ---------- responsive phone/tablet layouts ---------- */
-#mobilePanels { display: none; }
+html:not(.mobile) .sheet-head:not(.mobonly) { display: flex; align-items: center; justify-content: space-between; }
+@media (max-width: 1100px) { html:not(.mobile) #lab-circuit { --lw: 150px; --rw: 330px; } html:not(.mobile) #lab-circuit.hide-left { --lw: 0px; } html:not(.mobile) #lab-circuit.hide-right { --rw: 0px; } }
+.tabrow { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); background: var(--panel2); }
+.tabrow #tabs { flex: 1; border-bottom: 0; min-width: 0; }
+.sheet-x { border: 0; background: transparent; font-size: 16px; padding: 0 16px; border-radius: 0; }
+html:not(.mobile) #lab-field.hide-side { grid-template-columns: minmax(0, 1fr); }
+html:not(.mobile) #lab-field.hide-side .fl-side { display: none; }
+.fl-wrap canvas { touch-action: none; }
+
+/* ---------- project library ---------- */
 .project-library { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 14px; background: rgba(0,0,0,.68); }
 .project-library-card { width: min(720px, 100%); max-height: min(90dvh, 900px); overflow: auto; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
 .project-library-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -181,67 +205,130 @@ details { margin-top: 16px; } summary { cursor: pointer; color: var(--accent); f
 .project-actions { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
 .project-actions button { font-size: 11px; }
 
-@media (max-width: 760px) {
-  html, body { width: 100%; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; }
-  #top { min-height: 0; height: auto; padding: 6px 8px; gap: 6px; flex-wrap: wrap; }
-  .brand { font-size: 13px; }
-  .brand .logo { width: 23px; height: 23px; }
-  .labs { order: 2; }
-  .labtab { padding: 5px 9px; font-size: 11px; }
-  #top > .spacer { display: none; }
-  .filebtns { flex: 1 1 100%; order: 3; display: flex; overflow-x: auto; max-width: 100%; gap: 5px; padding-bottom: 2px; }
-  .filebtns button, .filebtns select { flex: 0 0 auto; min-height: 34px; font-size: 11px; }
-  #lab-circuit { position: relative; display: grid; grid-template-columns: minmax(0,1fr); overflow: hidden; }
-  #stage { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; }
-  #palette, #side { position: absolute; top: 0; bottom: 0; z-index: 30; width: min(86vw, 340px); min-width: 0; max-width: 90vw; box-shadow: var(--shadow); transition: transform .2s ease; }
-  #palette { left: 0; transform: translateX(-105%); border-right: 1px solid var(--line); }
-  #side { right: 0; transform: translateX(105%); border-left: 1px solid var(--line); }
-  #palette.mobile-open { transform: translateX(0); }
-  #side.mobile-open { transform: translateX(0); }
-  #palette > *, #side > * { min-width: 0; }
-  #side #tabs { overflow-x: auto; flex: 0 0 auto; }
-  #side #tabBody { min-width: 0; overflow: auto; }
-  #toolbar, #analysisbar { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 5px; padding: 5px 6px; min-height: 0; scrollbar-width: thin; }
-  #toolbar .group, #analysisbar .group { flex: 0 0 auto; }
-  #toolbar button, #analysisbar button { min-height: 34px; padding: 5px 8px; font-size: 11px; }
-  #toolbar .group.view { display: none; }
-  #analysisbar .spacer { display: none; }
-  .status { display: none; }
-  #mobilePanels { display: flex; gap: 5px; flex: 0 0 auto; }
-  #mobilePanels button { min-height: 34px; }
-  #canvasWrap { min-height: 0; touch-action: none; }
-  #cv { touch-action: none; }
-  .empty-hint { width: 88%; font-size: 11px; line-height: 1.55; }
-  #lab-field { display: block; overflow: auto; min-height: 0; }
-  #lab-field > * { max-width: 100%; }
-  .dlg { padding: 8px; }
-  .dlg-card { width: 100%; max-height: 94dvh; overflow: auto; padding: 16px; }
-  .dlg-card .cols { grid-template-columns: 1fr; gap: 12px; }
-  .project-library-card { padding: 14px; }
-  .project-row { align-items: flex-start; flex-direction: column; }
-  .project-actions { justify-content: flex-start; width: 100%; }
-  .project-actions button { flex: 1 1 auto; }
+/* ============================================================================
+ * PHONE / TABLET LAYOUT  (html.mobile is set by js/ui/device.js)
+ * Photopea-style: slim top bar, floating tool rail, round undo/redo,
+ * bottom tab bar, and bottom sheets that always have a ✕ and close on canvas tap.
+ * ========================================================================== */
+html.mobile { --nav: 56px; }
+html.mobile .deskonly, html.mobile .deskonly.group, html.mobile .deskonly.topundo { display: none !important; }
+html.mobile .mobonly { display: flex; }
+html.mobile body { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); overscroll-behavior: none; font-size: 14px; }
+html.mobile #top { height: 48px; padding: 0 8px; gap: 8px; }
+html.mobile .brand2, html.mobile .lab2 { display: none; }
+html.mobile .brand { font-size: 15px; }
+html.mobile #top .labs { margin-left: auto; }
+html.mobile .labtab { padding: 6px 13px; }
+html.mobile .menu { top: calc(52px + env(safe-area-inset-top)); left: 8px; width: min(300px, calc(100vw - 16px)); }
+html.mobile .menu button, html.mobile .menurow { padding: 13px 12px; font-size: 15px; }
+html.mobile .scrim { background: rgba(0,0,0,.28); }
+
+html.mobile #lab-circuit { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; transition: none; }
+html.mobile #stage { grid-area: 1 / 1; position: relative; min-width: 0; }
+html.mobile #canvasWrap { touch-action: none; }
+html.mobile #cv { touch-action: none; }
+
+/* floating tool rail (left) + zoom stack (right) */
+html.mobile #toolbar { display: contents; }
+html.mobile #rail { position: absolute; left: 8px; top: 10px; z-index: 10; display: flex; flex-direction: column; gap: 8px; }
+html.mobile #rail .group, html.mobile #zoomGroup { flex-direction: column; gap: 2px; padding: 4px; background: color-mix(in srgb, var(--panel) 93%, transparent); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.28); }
+html.mobile #zoomGroup { position: absolute; right: 8px; top: 10px; z-index: 10; }
+html.mobile #rail button, html.mobile #zoomGroup button { width: 42px; height: 42px; min-height: 0; padding: 0; border: 0; background: transparent; border-radius: 12px; display: grid; place-items: center; font-size: 19px; line-height: 1; }
+html.mobile #rail button span, html.mobile #zoomGroup button span { display: none; }
+html.mobile #zoomGroup .fiticon { display: block; }
+html.mobile #rail button.active { background: var(--accent); color: var(--accent-text); }
+html.mobile #btnDelete { color: var(--bad); }
+
+/* round undo / redo (+ run) */
+html.mobile #fabs { position: absolute; left: 12px; bottom: 14px; z-index: 10; gap: 10px; }
+html.mobile .fab.mobonly { display: grid; }
+html.mobile .fab { width: 52px; height: 52px; min-height: 0; padding: 0; border-radius: 50%; place-items: center; font-size: 23px; line-height: 1; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.38); }
+html.mobile .fab:active { transform: scale(.94); }
+html.mobile #fabRun { position: absolute; right: 12px; bottom: 14px; z-index: 10; background: var(--accent); color: var(--accent-text); border-color: var(--accent); width: 58px; height: 58px; font-size: 22px; }
+html.mobile body:not(.mode-tran) #fabRun { display: none; }
+
+/* bottom tab bar */
+html.mobile #bottomNav { flex: 0 0 auto; height: calc(var(--nav) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--panel); border-top: 1px solid var(--line); z-index: 40; }
+html.mobile #bottomNav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 11px; min-height: 0; padding: 0; }
+html.mobile #bottomNav i { font-size: 19px; line-height: 1.1; }
+html.mobile #bottomNav button.active { color: var(--accent); }
+html.mobile #bottomNav button.active i { transform: translateY(-1px); }
+
+/* bottom sheets: Parts, Panel (properties/answers/theorems), Analysis */
+html.mobile #palette, html.mobile #side, html.mobile #analysisbar {
+  position: absolute; left: 0; right: 0; top: auto; bottom: calc(var(--nav) + env(safe-area-inset-bottom));
+  width: auto; max-width: none; height: auto; max-height: min(60%, 460px); z-index: 30;
+  background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.35); overflow-y: auto; overflow-x: hidden; padding: 0 0 12px;
+  transform: translateY(calc(100% + 90px)); visibility: hidden; transition: transform .22s ease, visibility 0s .22s;
+}
+html.mobile #palette.open, html.mobile #side.open, html.mobile #analysisbar.open { transform: none; visibility: visible; transition: transform .22s ease; }
+html.mobile #palette > *, html.mobile #side > * { min-width: 0; }
+html.mobile #palette { padding: 0 10px 12px; }
+html.mobile #side { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+html.mobile #side #tabBody { flex: 1; min-height: 0; overflow: auto; }
+html.mobile #side .tabrow { flex: 0 0 auto; }
+html.mobile #side #tabs { overflow-x: auto; }
+html.mobile .tabbtn { padding: 13px 8px; }
+html.mobile #analysisbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; padding: 0 14px 16px; }
+html.mobile #analysisbar .sheet-head { flex: 1 0 100%; padding: 0; margin: 0 -14px; }
+html.mobile #analysisbar .group { flex-wrap: wrap; }
+html.mobile #analysisbar .group.view { flex: 1 0 100%; gap: 14px; }
+html.mobile #analysisbar .spacer, html.mobile .status { display: none; }
+html.mobile .sheet-head { position: sticky; top: 0; z-index: 2; background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 12px 6px 8px 14px; }
+html.mobile #palette .sheet-head { margin: 0 -10px; }
+html.mobile .sheet-head .panel-title { margin: 0; font-size: 12px; }
+html.mobile .sheet-x { font-size: 19px; padding: 0 14px; min-height: 38px; color: var(--muted); }
+html.mobile .palgrid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+html.mobile .pal { min-height: 64px; }
+html.mobile #analysisbar button, html.mobile #analysisbar input[type=text] { min-height: 40px; }
+html.mobile #analysisbar .seg button { padding: 8px 16px; }
+html.mobile #analysisbar .group.view label { min-height: 34px; }
+html.mobile .toast { bottom: calc(var(--nav) + env(safe-area-inset-bottom) + 76px); max-width: 92vw; }
+html.mobile .empty-hint { width: 70%; font-size: 12.5px; line-height: 1.6; top: 38%; }
+
+/* field lab on phone: canvas full screen, controls in a bottom sheet */
+html.mobile #lab-field { position: relative; display: block; overflow: hidden; }
+html.mobile #lab-field .fl-main { position: absolute; inset: 0; }
+html.mobile .fl-bar span.muted { display: none; }
+html.mobile .fl-bar button { min-height: 40px; padding: 5px 13px; }
+html.mobile .fl-side { position: absolute; left: 0; right: 0; bottom: 0; z-index: 30; max-height: 66%; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,.35); padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); transform: translateY(calc(100% + 40px)); visibility: hidden; transition: transform .22s ease, visibility 0s .22s; }
+html.mobile #lab-field.fl-open .fl-side { transform: none; visibility: visible; transition: transform .22s ease; }
+html.mobile .fl-x { position: sticky; top: -4px; float: right; z-index: 3; min-height: 36px; padding: 0 10px; background: var(--panel); }
+html.mobile .fl-read { bottom: calc(10px + env(safe-area-inset-bottom)); min-width: 0; max-width: 78vw; }
+
+/* dialogs on phone */
+html.mobile .dlg { padding: 8px; }
+html.mobile .dlg-card { width: 100%; max-height: 94dvh; padding: 16px; }
+html.mobile .dlg-card .cols { grid-template-columns: 1fr; gap: 12px; }
+html.mobile .project-library-card { padding: 14px; }
+html.mobile .project-row { align-items: flex-start; flex-direction: column; }
+html.mobile .project-actions { justify-content: flex-start; width: 100%; }
+html.mobile .project-actions button { flex: 1 1 auto; }
+html.mobile input[type=text], html.mobile input[type=search], html.mobile select { font-size: 16px; }   /* stops iOS zooming on focus */
+
+/* short landscape phones */
+@media (max-height: 500px) {
+  html.mobile { --nav: 42px; }
+  html.mobile #top { height: 40px; }
+  html.mobile #bottomNav span { display: none; }
+  html.mobile #rail button, html.mobile #zoomGroup button { width: 36px; height: 36px; font-size: 17px; }
+  html.mobile .fab { width: 44px; height: 44px; }
+  html.mobile #palette, html.mobile #side, html.mobile #analysisbar { max-height: 82%; }
+  html.mobile .menu { top: 44px; }
 }
 
-@media (max-width: 760px) and (orientation: landscape) {
-  #top { padding: 3px 7px; gap: 5px; flex-wrap: nowrap; }
-  .brand { font-size: 11px; }
-  .brand .logo { width: 20px; height: 20px; }
-  .labs { order: initial; }
-  .labtab { padding: 3px 7px; }
-  .filebtns { order: initial; flex: 1 1 auto; width: auto; }
-  .filebtns button, .filebtns select { min-height: 29px; padding: 3px 7px; }
-  #toolbar, #analysisbar { padding: 3px 5px; }
-  #toolbar button, #analysisbar button, #mobilePanels button { min-height: 29px; padding: 3px 7px; }
-  #palette, #side { width: min(42vw, 320px); }
-  #palette { transform: translateX(-105%); }
-  #side { transform: translateX(105%); }
-  #canvasWrap { min-height: 0; }
-}
-
-@media (pointer: coarse) {
-  button, select { min-height: 36px; }
-  input[type=text], input[type=search] { min-height: 38px; }
-}
-
-.filebtns.fieldmode #btnProjects { display: none; }
+/* ---- v2: handle on each sheet, all floating actions at the bottom ---- */
+html.mobile #editGroup { display: none; }
+html.mobile #fabs { gap: 9px; }
+html.mobile #fabs .fab { width: 48px; height: 48px; font-size: 21px; }
+html.mobile #fabs .fab.danger { color: var(--bad); }
+html.mobile .grabber { position: absolute; left: 0; right: 0; top: 0; height: 22px; min-height: 0; padding: 0; border: 0; background: transparent; border-radius: 18px 18px 0 0; display: block; }
+html.mobile .grabber::before { content: ''; position: absolute; left: 50%; top: 8px; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: var(--muted); opacity: .55; }
+html.mobile #palette .sheet-head, html.mobile #analysisbar .sheet-head { padding-top: 24px; }
+html.mobile #side .tabrow { position: relative; padding-top: 16px; }
+html.mobile #side .tabrow .sheet-x { z-index: 2; }
+html.mobile #side .tabbtn { padding: 10px 8px; }
+html.mobile .fl-side { padding-top: 26px; }
+html.mobile .fl-grab { position: sticky; top: -20px; margin: -16px -14px 0; width: calc(100% + 28px); height: 26px; z-index: 3; background: var(--panel); }
+html.mobile .fl-x { top: 2px; margin-top: -10px; }

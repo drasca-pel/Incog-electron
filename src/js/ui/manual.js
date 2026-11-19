@@ -203,6 +203,6 @@
   });
 
   const bar = document.getElementById('fileBtns'), help = document.getElementById('btnHelp');
-  if (bar) { const b = document.createElement('button'); b.id = 'btnManual'; b.textContent = 'Manual'; b.title = 'User manual (F1)'; b.onclick = () => open(); bar.insertBefore(b, help || null); }
+  if (bar) { const b = document.createElement('button'); b.id = 'btnManual'; b.innerHTML = '<i>📖</i>Manual'; b.title = 'User manual (F1)'; b.onclick = () => open(); bar.insertBefore(b, help || null); }
   window.Incog = window.Incog || {}; window.Incog.manual = { open, close: shut };
 })();

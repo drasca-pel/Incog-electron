@@ -10,62 +10,66 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; script-src 'self'">
   <title>Incog Electric Lab</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/ui/device.js"></script>
 </head>
 <body class="theme-dark">
 
   <!-- ================= top bar ================= -->
   <header id="top">
-    <div class="brand"><span class="logo">⚡</span><b>Incog</b> Electric Lab</div>
+    <button id="btnMenu" class="iconbtn" type="button" aria-label="Menu" aria-expanded="false" title="Menu">☰</button>
+    <div class="brand"><span class="logo">⚡</span><span class="brandtxt"><b>Incog</b><span class="brand2"> Electric Lab</span></span></div>
     <nav class="labs" id="labTabs">
-      <button class="labtab active" data-lab="circuit">Circuit Lab</button>
-      <button class="labtab" data-lab="field">Field Lab</button>
+      <button class="labtab active" data-lab="circuit">Circuit<span class="lab2"> Lab</span></button>
+      <button class="labtab" data-lab="field">Field<span class="lab2"> Lab</span></button>
     </nav>
     <div class="spacer"></div>
-    <div class="filebtns" id="fileBtns">
-      <button id="btnNew" title="New circuit">New</button>
-      <button id="btnOpen" title="Open circuit file (Ctrl+O)">Open</button>
-      <button id="btnSave" title="Save to a file on this computer (Ctrl+S)">Save</button>
-      <button id="btnSaveAs" title="Save as a new file (Ctrl+Shift+S)">Save As</button>
-      <button id="btnProjects" title="Saved projects">My Projects</button>
-      <select id="selExamples" title="Load an example circuit"><option value="">Examples ▾</option></select>
-      <button id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
-      <button id="btnRedo" title="Redo (Ctrl+Y)">↷</button>
-      <button id="btnTheme" title="Light / dark theme">Theme</button>
-      <button id="btnHelp" title="Help and shortcuts">?</button>
+    <div class="deskonly topundo">
+      <button id="btnUndo" class="iconbtn" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
+      <button id="btnRedo" class="iconbtn" title="Redo (Ctrl+Y)" aria-label="Redo">↷</button>
     </div>
     <input type="file" id="fileInput" accept=".incog,.json,application/json" hidden>
   </header>
+  <div id="menuScrim" class="scrim hidden"></div>
+  <div id="fileBtns" class="menu hidden" role="menu">
+    <button id="btnNew" title="New circuit"><i>＋</i>New</button>
+    <button id="btnOpen" title="Open circuit file (Ctrl+O)"><i>📂</i>Open</button>
+    <button id="btnProjects" title="Saved projects"><i>🗂</i>My Projects</button>
+    <button id="btnSave" title="Save (Ctrl+S)"><i>💾</i>Save</button>
+    <button id="btnSaveAs" title="Save as a new file (Ctrl+Shift+S)"><i>⎘</i>Save As</button>
+    <label class="menurow" title="Load an example circuit"><i>📘</i><select id="selExamples"><option value="">Examples ▾</option></select></label>
+    <div class="menusep"></div>
+    <button id="btnTheme" title="Light / dark theme"><i>◐</i>Theme</button>
+    <button id="btnHelp" title="Help and shortcuts"><i>?</i>Help &amp; shortcuts</button>
+  </div>
 
   <!-- ================= CIRCUIT LAB ================= -->
   <main id="lab-circuit" class="lab">
-    <aside id="palette"><div class="panel-title">Parts</div><div id="paletteList"></div></aside>
+    <aside id="palette" class="sheet"><div class="sheet-head"><span class="panel-title">Parts</span><button class="sheet-x mobonly" type="button" data-close="parts" aria-label="Close">✕</button></div><div id="paletteList"></div></aside>
 
     <section id="stage">
       <div id="toolbar">
-        <div class="group" id="mobilePanels"><button id="btnPartsPanel" type="button">Parts</button><button id="btnPropertiesPanel" type="button">Properties</button></div>
-        <div class="group" id="toolGroup">
-          <button data-tool="select" class="tool active" title="Select / move (V)">⬉ Select</button>
-          <button data-tool="wire" class="tool" title="Draw wire (W). Click a part's pin to start a wire too">✎ Wire</button>
-          <button data-tool="probe" class="tool" title="Test probe (P). Click a wire, pin or part to stamp a live readout">⌖ Probe</button>
-          <button data-tool="pan" class="tool" title="Pan (H) · or hold Space · or middle mouse">✥ Pan</button>
+        <div class="group deskonly" id="panelBtns"></div>
+        <div id="rail">
+          <div class="group" id="toolGroup">
+            <button data-tool="select" class="tool active" title="Select / move (V)" aria-label="Select"><i>⬉</i><span>Select</span></button>
+            <button data-tool="wire" class="tool" title="Draw wire (W). Click a part's pin to start a wire too" aria-label="Wire"><i>✎</i><span>Wire</span></button>
+            <button data-tool="probe" class="tool" title="Test probe (P). Click a wire, pin or part to stamp a live readout" aria-label="Probe"><i>⌖</i><span>Probe</span></button>
+            <button data-tool="pan" class="tool" title="Pan (H) · or hold Space · or middle mouse" aria-label="Pan"><i>✥</i><span>Pan</span></button>
+          </div>
+          <div class="group" id="editGroup">
+            <button id="btnRotate" title="Rotate selected part (R)" aria-label="Rotate"><i>⟳</i><span>Rotate</span></button>
+            <button id="btnDelete" title="Delete selected (Del)" aria-label="Delete"><i>🗑</i><span>Delete</span></button>
+          </div>
         </div>
-        <div class="group">
-          <button id="btnZoomIn" title="Zoom in (+)">＋</button>
-          <button id="btnZoomOut" title="Zoom out (−)">−</button>
-          <button id="btnFit" title="Fit circuit to window (F)">Fit</button>
-          <button id="btnRotate" title="Rotate selected part (R)">⟳ Rotate</button>
-          <button id="btnDelete" title="Delete selected (Del)">🗑 Delete</button>
+        <div class="group" id="zoomGroup">
+          <button id="btnZoomIn" title="Zoom in (+)" aria-label="Zoom in">＋</button>
+          <button id="btnZoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button>
+          <button id="btnFit" title="Fit circuit to window (F)" aria-label="Fit"><i class="fiticon">⤢</i><span>Fit</span></button>
         </div>
-        <div class="group view">
-          <label title="Show node names A, B, C…"><input type="checkbox" id="chkNodes" checked> Nodes</label>
-          <label><input type="checkbox" id="chkValues" checked> Values</label>
-          <label title="Colour wires by voltage"><input type="checkbox" id="chkColors" checked> Colour</label>
-          <label title="Animate current"><input type="checkbox" id="chkFlow" checked> Flow</label>
-        </div>
-
       </div>
 
-      <div id="analysisbar">
+      <div id="analysisbar" class="sheet">
+        <div class="sheet-head mobonly"><span class="panel-title">Analysis &amp; view</span><button class="sheet-x" type="button" data-close="analysis" aria-label="Close">✕</button></div>
         <div class="group">
           <span class="lbl">Analysis</span>
           <div class="seg" id="modeSeg">
@@ -86,18 +90,38 @@
           <label class="lbl">Speed <input id="inSpeed" type="range" min="-2" max="2" step="0.1" value="0"></label>
           <span class="muted" id="simClock">t = 0 s</span>
         </div>
+        <div class="group view">
+          <span class="lbl mobonly">Show</span>
+          <label title="Show node names A, B, C…"><input type="checkbox" id="chkNodes" checked> Nodes</label>
+          <label><input type="checkbox" id="chkValues" checked> Values</label>
+          <label title="Colour wires by voltage"><input type="checkbox" id="chkColors" checked> Colour</label>
+          <label title="Animate current"><input type="checkbox" id="chkFlow" checked> Flow</label>
+        </div>
         <div class="spacer"></div>
         <div id="statusMsg" class="status"></div>
       </div>
 
       <div id="canvasWrap"><canvas id="cv"></canvas><div id="emptyHint" class="empty-hint">
-        <b>Start here</b><br>Click a part on the left, then click the canvas to place it.<br>
-        Use <b>Wire</b> (or click a pin) to connect parts. Place a <b>GND</b>.<br>
-        Or open <b>Examples ▾</b> at the top.</div></div>
+        <b>Start here</b><br>Open <b>Parts</b>, pick one, then tap the canvas to place it.<br>
+        Use <b>Wire</b> (or drag from a pin) to connect parts. Place a <b>GND</b>.<br>
+        Or load one from <b>☰ Menu → Examples</b>.</div>
+        <div id="fabs" class="mobonly">
+          <button id="fabUndo" class="fab" type="button" aria-label="Undo">↶</button>
+          <button id="fabRedo" class="fab" type="button" aria-label="Redo">↷</button>
+          <button id="fabRotate" class="fab" type="button" aria-label="Rotate selected">⟳</button>
+          <button id="fabDelete" class="fab danger" type="button" aria-label="Delete selected">🗑</button>
+        </div>
+        <button id="fabRun" class="fab fabrun mobonly" type="button" aria-label="Run simulation">▶</button>
+      </div>
+      <nav id="bottomNav" class="mobonly">
+        <button type="button" data-sheet="parts"><i>▦</i><span>Parts</span></button>
+        <button type="button" data-sheet="analysis"><i>∿</i><span>Analysis</span></button>
+        <button type="button" data-sheet="props"><i>☰</i><span>Panel</span></button>
+      </nav>
     </section>
 
-    <aside id="side">
-      <nav id="tabs"></nav>
+    <aside id="side" class="sheet">
+      <div class="tabrow"><nav id="tabs"></nav><button class="sheet-x mobonly" type="button" data-close="props" aria-label="Close">✕</button></div>
       <div id="tabBody"></div>
     </aside>
   </main>
@@ -182,10 +206,6 @@
   <script src="js/ui/panels.js"></script>
   <script src="js/ui/updates.js"></script>
   <script src="js/ui/manual.js"></script>
-  <script>
-    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-    }
-  </script>
+  <script src="js/sw-register.js"></script>
 </body>
 </html>

@@ -94,7 +94,7 @@
   function autosave() { store.set('incog.autosave', JSON.stringify({ circuit: exportObj() })); if (mobileLibrary && currentProjectId) saveLibraryProject(currentProjectId, currentProjectName, exportObj()).catch(() => {}); }
   function exportObj() { const o = app.circuit.toJSON(); o.analysis = { mode: app.mode, freq: app.freq, rms: app.rms }; return o; }
 
-  function onSelect() { Incog.tabs.notify('select'); if (mobileLibrary && window.matchMedia('(max-width: 760px)').matches) { $('side').classList.add('mobile-open'); $('palette').classList.remove('mobile-open'); } }
+  function onSelect() { Incog.tabs.notify('select'); }
   function onTool(tool) {
     document.querySelectorAll('#toolGroup .tool').forEach((b) => b.classList.toggle('active', b.dataset.tool === tool));
   }
@@ -108,12 +108,12 @@
       const grid = h('div', { class: 'palgrid' });
       for (const def of cat.defs) {
         const cv = h('canvas', { width: 112, height: 68 });
-        const btn = h('button', { class: 'pal', title: def.name + (def.description ? '\n' + def.description : ''), onclick: () => { app.editor.startPlace(def.type); } }, cv, h('span', {}, def.name.replace(/ \(.\)$/, '')));
+        const btn = h('button', { class: 'pal', title: def.name + (def.description ? '\n' + def.description : ''), onclick: () => { app.editor.startPlace(def.type); document.dispatchEvent(new Event('incog:part-picked')); } }, cv, h('span', {}, def.name.replace(/ \(.\)$/, '')));
         grid.appendChild(btn);
         iconDraw.push(() => drawIcon(cv, def));
         for (const v of def.variants || []) {   // extra palette entries that reuse the same part with preset values
           const vc = h('canvas', { width: 112, height: 68 });
-          grid.appendChild(h('button', { class: 'pal', title: v.name, onclick: () => { app.editor.startPlace(def.type, v.params); } }, vc, h('span', {}, v.name)));
+          grid.appendChild(h('button', { class: 'pal', title: v.name, onclick: () => { app.editor.startPlace(def.type, v.params); document.dispatchEvent(new Event('incog:part-picked')); } }, vc, h('span', {}, v.name)));
           iconDraw.push(() => drawIcon(vc, def, v.params));
         }
       }
@@ -147,6 +147,7 @@
   app.setMode = function (m, quiet) {
     if (m === 'tran' && false) return;
     app.mode = m; app.running = false; app.sim = null; app.resetHistory();
+    document.body.classList.toggle('mode-tran', m === 'tran'); $('fabRun').textContent = '▶';
     document.querySelectorAll('#modeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.mode === m));
     $('acControls').hidden = m !== 'ac'; $('tranControls').hidden = m !== 'tran';
     $('btnRun').textContent = '▶ Run';
@@ -165,12 +166,12 @@
   function startStop(force) {
     if (app.mode !== 'tran') { app.toast('Switch the analysis to Transient first.'); return; }
     app.running = force !== undefined ? force : !app.running;
-    $('btnRun').textContent = app.running ? '❚❚ Pause' : '▶ Run';
+    $('btnRun').textContent = app.running ? '❚❚ Pause' : '▶ Run'; $('fabRun').textContent = app.running ? '❚❚' : '▶';
     if (app.running) {
       if (!app.sim) app.sim = new Incog.TransientSim(app.live.nl, { dt: dtValue() });
       app.sim.dt = dtValue();
       if (!app.live) app.recompute();
-      Incog.tabs.show('scope');
+      Incog.tabs.show('scope'); document.dispatchEvent(new Event('incog:open-props'));
     }
   }
   function resetSim() {
@@ -207,7 +208,7 @@
       app.editor.invalidate();
       if (now - lastTabTick > 110) { lastTabTick = now; Incog.tabs.notify('live'); }
     } catch (err) {
-      app.running = false; $('btnRun').textContent = '▶ Run'; app.error = err.message; setStatus(app.live.nl); app.toast('Simulation stopped: ' + err.message, 5000);
+      app.running = false; $('btnRun').textContent = '▶ Run'; $('fabRun').textContent = '▶'; app.error = err.message; setStatus(app.live.nl); app.toast('Simulation stopped: ' + err.message, 5000);
     }
   }
 
@@ -345,30 +346,31 @@
     app.editor = new Incog.Editor(canvas, app.circuit, {
       onChange, onSelect, onTool,
       getLive: () => app.live,
-      onEdit: () => { Incog.tabs.show('props'); setTimeout(() => { const i = document.querySelector('#tabBody .tabpane:not(.hidden) input'); if (i) { i.focus(); i.select(); } }, 30); },
+      onEdit: () => { Incog.tabs.show('props'); document.dispatchEvent(new Event('incog:open-props')); setTimeout(() => { const i = document.querySelector('#tabBody .tabpane:not(.hidden) input'); if (i) { i.focus(); i.select(); } }, 30); },
     });
     buildPalette();
     Incog.tabs.build(app, $('tabs'), $('tabBody'));
 
     // examples menu
     const sel = $('selExamples');
+    if (sel.options.length <= 1 && Incog.examples) Incog.examples.list.forEach((ex) => { const o = document.createElement('option'); o.value = ex.id; o.textContent = ex.title || ex.name || ex.id; sel.appendChild(o); });
     sel.hidden = sel.options.length <= 1;
     sel.addEventListener('change', () => { if (sel.value) loadExample(sel.value); sel.value = ''; });
 
     // toolbar
-    $('btnPartsPanel').onclick = () => { $('palette').classList.toggle('mobile-open'); $('side').classList.remove('mobile-open'); };
-    $('btnPropertiesPanel').onclick = () => { $('side').classList.toggle('mobile-open'); $('palette').classList.remove('mobile-open'); };
     document.querySelectorAll('#toolGroup .tool').forEach((b) => b.addEventListener('click', () => app.editor.setTool(b.dataset.tool)));
     $('btnZoomIn').onclick = () => app.editor.zoom(1.25); $('btnZoomOut').onclick = () => app.editor.zoom(0.8); $('btnFit').onclick = () => app.editor.fit();
     $('btnRotate').onclick = () => app.editor.rotateSelection(); $('btnDelete').onclick = () => app.editor.deleteSelection();
-    $('btnUndo').onclick = () => app.editor.undo(); $('btnRedo').onclick = () => app.editor.redo();
+    $('btnUndo').onclick = $('fabUndo').onclick = () => app.editor.undo(); $('btnRedo').onclick = $('fabRedo').onclick = () => app.editor.redo();
+    $('fabRun').onclick = () => startStop();
+    $('fabRotate').onclick = () => app.editor.rotateSelection(); $('fabDelete').onclick = () => app.editor.deleteSelection();
     $('btnNew').onclick = newCircuit; $('btnSave').onclick = () => saveFile(false); $('btnSaveAs').onclick = () => saveFile(true); $('btnOpen').onclick = openDialog;
     $('btnProjects').onclick = showProjectLibrary; $('closeProjects').onclick = hideProjectLibrary;
     $('projectLibrary').addEventListener('click', (e) => { if (e.target === $('projectLibrary')) hideProjectLibrary(); });
     $('projectSaveForm').addEventListener('submit', (e) => { e.preventDefault(); saveToLibrary(true); });
     $('projectImport').onclick = () => $('fileInput').click();
     if (!mobileLibrary) $('btnProjects').hidden = true;
-    else { $('btnOpen').textContent = 'Projects'; $('btnSave').textContent = 'Save'; $('btnSaveAs').textContent = 'Save New'; }
+    else { $('btnOpen').hidden = true; $('btnSaveAs').innerHTML = '<i>⎘</i>Save New'; }
 
     $('fileInput').addEventListener('change', (e) => { if (e.target.files[0]) { if (mobileLibrary) { currentProjectId = null; currentProjectName = e.target.files[0].name.replace(/\.incog$/i, ''); $('projectName').value = currentProjectName; } openFile(e.target.files[0]); } e.target.value = ''; });
     const bind = (id, key) => $(id).addEventListener('change', (e) => { app.editor[key] = e.target.checked; app.editor.invalidate(); });
@@ -400,7 +402,7 @@
 
     // always start with an empty canvas
     loadObject({ circuit: new Incog.Circuit().toJSON(), analysis: { mode: 'dc', freq: 50 } }, true);
-    app.toast('Empty canvas. Click a part on the left to begin.', 5000);
+    app.toast(Incog.isMobile && Incog.isMobile() ? 'Empty canvas. Tap Parts below to begin.' : 'Empty canvas. Click a part on the left to begin.', 5000);
     requestAnimationFrame(tranLoop);
     setTimeout(() => app.editor.fit(), 60);
   }
@@ -417,6 +419,8 @@
     document.querySelectorAll('.labtab').forEach((b) => b.classList.toggle('active', b.dataset.lab === which));
     $('lab-circuit').classList.toggle('hidden', which !== 'circuit'); $('lab-field').classList.toggle('hidden', which !== 'field');
     $('fileBtns').classList.toggle('fieldmode', which === 'field');
+    document.querySelector('.topundo').classList.toggle('off', which === 'field');
+    if (Incog.panels) Incog.panels.closeSheets();
     if (which === 'field') {
       if (!fieldMounted) { Incog.FieldLab.mount($('lab-field'), app); fieldMounted = true; }
       Incog.FieldLab.onShow();
