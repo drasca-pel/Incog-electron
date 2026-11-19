@@ -1,16 +1,17 @@
 
-name: Build and Release
+name: Build and Publish Release
 
 on:
   push:
-    tags: ['v*']
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     strategy:
       max-parallel: 1
       matrix:
@@ -19,19 +20,50 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run tests
         run: npm test
 
-      - name: Build and publish installers
-        run: npx electron-builder --publish onTag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build installers
+        run: npx electron-builder --publish never
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release automatically
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Incog Electric Lab ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true
