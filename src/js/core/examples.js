@@ -130,5 +130,5 @@
     return circ;
   }
 
-  Incog.examples = { list: [], build };
+  Incog.examples = { list, build };
 })(typeof window !== 'undefined' ? window : globalThis);
